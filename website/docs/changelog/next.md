@@ -7,6 +7,8 @@ description: Unreleased changes and upcoming features in WUD (What's Up Docker?)
 
 > Changes below are merged on `main` and will be included in the upcoming release.
 
+- ✨ [WATCHER] Report the best available update per semver kind (`result.candidates`: major / minor / patch); the Containers page shows them next to the main update (e.g. a patch release besides a minor one)
+- ✨ [UI] Update kind filter on the Containers page now supports selecting several kinds at once (e.g. patch + minor)
 - 🐛 [WATCHER] Fix cool-down delay ignored for tag updates when digest watching is disabled (#1543)
 - 🐛 [WATCHER] Populate candidate digest on SemVer updates when digest watching is disabled (fixes #1542)
 
