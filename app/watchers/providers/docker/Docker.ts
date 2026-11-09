@@ -13,6 +13,7 @@ import {
     extractTagComponents,
     isPrerelease,
     interpolateTagFilter,
+    countNewerLines,
 } from '../../../tag';
 import * as event from '../../../event';
 import {
@@ -1723,6 +1724,16 @@ export class Docker extends Watcher {
                         );
                     }
                 }
+            }
+
+            // Count newer release lines (used by EOL policies)
+            if (container.image.tag.semver) {
+                result.newerLines = countNewerLines(
+                    container.image.tag.value,
+                    tagsCandidates,
+                    container.transformTags,
+                    container,
+                );
             }
 
             // Keep the best candidate per semver kind (major / minor / patch)

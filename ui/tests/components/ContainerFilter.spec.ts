@@ -172,4 +172,14 @@ describe('ContainerFilter', () => {
     expect(wrapper.emitted('reset-filters')).toBeTruthy();
     expect(wrapper.emitted('registry-changed')).toBeTruthy();
   });
+
+  it('emits eol-only-changed and counts it as an active filter', async () => {
+    wrapper.vm.eolOnlyLocal = true;
+    expect(wrapper.vm.hasActiveFilters).toBe(true);
+    await wrapper.vm.emitEolOnlyChanged();
+    expect(wrapper.emitted('eol-only-changed')).toBeTruthy();
+
+    await wrapper.vm.resetFilters();
+    expect(wrapper.vm.eolOnlyLocal).toBe(false);
+  });
 });

@@ -818,6 +818,40 @@ components:
                 snoozedUntil:
                     type: integer
                     description: Epoch timestamp (ms) until which the update is snoozed
+                eol:
+                    type: object
+                    description: |
+                        End-of-life status of the running version. Absent when unknown.
+                        From endoflife.date (`WUD_EOL_ENABLED=true`, matched by image or the
+                        `wud.eol.product` label) or from the `wud.eol.policy` label.
+                    properties:
+                        status:
+                            type: string
+                            enum: [eol, eol-soon, supported, unknown]
+                        source:
+                            type: string
+                            enum: [label, policy, purl]
+                        product:
+                            type: string
+                            description: endoflife.date product (e.g. postgresql)
+                        productLabel:
+                            type: string
+                        cycle:
+                            type: string
+                            description: Release cycle of the running version (e.g. 16 or 3.6)
+                        eolFrom:
+                            type: string
+                            description: Date the cycle reaches (or reached) end of life
+                        latestInCycle:
+                            type: string
+                        link:
+                            type: string
+                        policy:
+                            type: string
+                            description: Policy label value (e.g. latest-n-major:3)
+                        newerLines:
+                            type: integer
+                            description: Newer release lines counted by the policy
                 updateKind:
                     type: object
                     properties:
@@ -871,6 +905,16 @@ components:
                                     type: string
                                 patch:
                                     type: string
+                        newerLines:
+                            type: object
+                            description: |
+                                For semver tags, the number of distinct release lines newer than the
+                                current tag (major = e.g. 18, minor = e.g. 2.14). Used by EOL policies.
+                            properties:
+                                major:
+                                    type: integer
+                                minor:
+                                    type: integer
                         digest:
                             type: string
                             description: The remote manifest digest, when the container is watched by digest.

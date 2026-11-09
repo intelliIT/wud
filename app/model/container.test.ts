@@ -64,6 +64,7 @@ test('model should be validated when compliant', async () => {
         displayIcon: 'mdi:docker',
         isOfficial: false,
         documentationUrl: 'https://release-1.0.0.acme.com',
+        eol: undefined,
         changelogUrl: undefined,
         upstreamUrl: undefined,
 

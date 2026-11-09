@@ -12,6 +12,7 @@
         :update-kinds="updateKinds"
         :update-kind-selected-init="updateKindSelected"
         :updateAvailable="updateAvailableSelected"
+        :eol-only="eolOnlySelected"
         :oldestFirst="oldestFirst"
         :groupByLabel="groupByLabel"
         :groupLabels="allContainerLabels"
@@ -23,6 +24,7 @@
         @stack-changed="onStackChanged"
         @search-changed="onSearchChanged"
         @update-available-changed="onUpdateAvailableChanged"
+        @eol-only-changed="onEolOnlyChanged"
         @oldest-first-changed="onOldestFirstChanged"
         @group-by-label-changed="onGroupByLabelChanged"
         @update-kind-changed="onUpdateKindChanged"
@@ -150,6 +152,30 @@
               <v-chip label variant="tonal" size="small" class="font-weight-medium">
                 {{ item.raw ? item.raw.image.tag.value : item.image.tag.value }}
               </v-chip>
+              <v-tooltip bottom v-if="isEolBadgeVisible((item.raw || item).eol)">
+                <template v-slot:activator="{ props }">
+                  <v-chip
+                    label
+                    variant="flat"
+                    size="small"
+                    class="ml-1 font-weight-bold"
+                    :color="getEolColor((item.raw || item).eol)"
+                    v-bind="props"
+                  >
+                    {{ getEolLabel((item.raw || item).eol) }}
+                  </v-chip>
+                </template>
+                <span class="text-caption">{{ getEolDescription((item.raw || item).eol) }}</span>
+              </v-tooltip>
+              <v-tooltip bottom v-if="imageAgeEnabled && isImageOlderThanOneYear(item.raw || item)">
+                <template v-slot:activator="{ props }">
+                  <span class="image-age-warning d-inline-flex align-center ml-2 text-caption text-warning" v-bind="props">
+                    <v-icon size="small" color="warning" class="mr-1">mdi-alert-circle</v-icon>
+                    {{ formatDate((item.raw || item).image.created) }}
+                  </span>
+                </template>
+                <span class="text-caption">{{ getImageAgeDescription(item.raw || item) }}</span>
+              </v-tooltip>
             </template>
 
             <template #[`item.update`]="{ item }">
@@ -170,7 +196,12 @@
                         {{ getNewVersion(item.raw || item) }}
                       </v-chip>
                     </template>
-                    <span class="text-caption">Copy to clipboard</span>
+                    <span class="text-caption">
+                      Copy to clipboard
+                      <template v-if="staysInEolCycle(getNewVersion(item.raw || item), (item.raw || item).eol)">
+                        <br />Stays in EOL cycle {{ (item.raw || item).eol.cycle }}
+                      </template>
+                    </span>
                   </v-tooltip>
                   <v-tooltip
                     bottom
@@ -190,7 +221,12 @@
                         {{ candidate.tag }}
                       </v-chip>
                     </template>
-                    <span class="text-caption">{{ candidate.kind }} update &ndash; copy to clipboard</span>
+                    <span class="text-caption">
+                      {{ candidate.kind }} update &ndash; copy to clipboard
+                      <template v-if="staysInEolCycle(candidate.tag, (item.raw || item).eol)">
+                        <br />Stays in EOL cycle {{ (item.raw || item).eol.cycle }}
+                      </template>
+                    </span>
                   </v-tooltip>
                   <v-tooltip bottom v-if="(item.raw ? item.raw.result?.changelogUrl : item.result?.changelogUrl) || (item.raw ? item.raw.changelogUrl : item.changelogUrl)">
                     <template v-slot:activator="{ props }">
@@ -534,6 +570,17 @@ import ContainerUpdate from "@/components/ContainerUpdate.vue";
 import ContainerUpdateDialog from "@/components/ContainerUpdateDialog.vue";
 import IconRenderer from "@/components/IconRenderer.vue";
 import {
+  isEolBadgeVisible,
+  getEolColor,
+  getEolLabel,
+  getEolDescription,
+  staysInEolCycle,
+} from "@/services/eol";
+import { date as formatDate } from "@/filters";
+import { getServer } from "@/services/server";
+
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+import {
   deleteContainer,
   getAllContainers,
   snoozeContainer,
@@ -579,6 +626,7 @@ export default defineComponent({
       searchQuery: "",
       updateKindSelected: [] as string[],
       updateAvailableSelected: false,
+      eolOnlySelected: false,
       groupByLabel: "",
       oldestFirst: false,
       currentUser: null as any,
@@ -589,6 +637,7 @@ export default defineComponent({
       drawerTab: "triggers",
       
       deleteEnabled: false,
+      imageAgeEnabled: true,
       dialogDelete: false,
       containerToDelete: null as any,
 
@@ -628,6 +677,11 @@ export default defineComponent({
     eventService.on("wud:container-report", this._onSseContainerReport);
     eventService.on("wud:watch-stop", this._onSseWatchStop);
     this.deleteEnabled = (this as any).$serverConfig?.feature?.delete || false;
+    // Enabled unless explicitly disabled (WUD_SERVER_FEATURE_IMAGEAGE=false).
+    // The server configuration may not be loaded yet when opening this page directly.
+    const serverConfig =
+      (this as any).$serverConfig ?? (await getServer().catch(() => undefined))?.configuration;
+    this.imageAgeEnabled = serverConfig?.feature?.imageage !== false;
     try {
       this.currentUser = await getUser();
     } catch {
@@ -762,6 +816,7 @@ export default defineComponent({
           );
         })
         .filter((c) => (this.updateAvailableSelected ? c.updateAvailable : true))
+        .filter((c) => (this.eolOnlySelected ? isEolBadgeVisible(c.eol) : true))
         .filter((c) => {
           if (!this.searchQuery) return true;
           const q = this.searchQuery.toLowerCase().trim();
@@ -798,6 +853,11 @@ export default defineComponent({
 
   methods: {
     getRegistryProviderIcon,
+    isEolBadgeVisible,
+    getEolColor,
+    getEolLabel,
+    getEolDescription,
+    staysInEolCycle,
 
     openContainerDrawer(container: any) {
       this.selectedContainer = container;
@@ -845,6 +905,20 @@ export default defineComponent({
     getNewVersionClass(container: any) {
       return this.getSemverDiffColor(container.updateKind?.semverDiff);
     },
+
+    isImageOlderThanOneYear(container: any, now = Date.now()) {
+      const created = Date.parse(container?.image?.created);
+      return !Number.isNaN(created) && now - created > ONE_YEAR_MS;
+    },
+
+    getImageAgeDescription(container: any, now = Date.now()) {
+      const created = Date.parse(container?.image?.created);
+      if (Number.isNaN(created)) return "";
+      const years = Math.floor((now - created) / ONE_YEAR_MS);
+      return `Image created on ${formatDate(container.image.created)} (more than ${years} year${years === 1 ? "" : "s"} old)`;
+    },
+
+    formatDate,
 
     getOtherUpdateCandidates(container: any) {
       const candidates = container.result?.candidates || {};
@@ -1043,6 +1117,7 @@ export default defineComponent({
     },
     onSearchChanged(val: string) { this.searchQuery = val; },
     onUpdateAvailableChanged() { this.updateAvailableSelected = !this.updateAvailableSelected; this.updateQueryParams(); },
+    onEolOnlyChanged() { this.eolOnlySelected = !this.eolOnlySelected; this.updateQueryParams(); },
     onOldestFirstChanged() { this.oldestFirst = !this.oldestFirst; this.updateQueryParams(); },
     onGroupByLabelChanged(val: string) { this.groupByLabel = val; this.updateQueryParams(); },
     onUpdateKindChanged(val: string[]) { this.updateKindSelected = val ?? []; this.updateQueryParams(); },
@@ -1055,6 +1130,7 @@ export default defineComponent({
       this.updateKindSelected = [];
       this.groupByLabel = "";
       this.updateAvailableSelected = false;
+      this.eolOnlySelected = false;
       this.oldestFirst = false;
       this.updateQueryParams();
     },
@@ -1069,6 +1145,7 @@ export default defineComponent({
       if (this.stackSelected) query["stack"] = this.stackSelected;
       if (this.updateKindSelected.length) query["update-kind"] = this.updateKindSelected.join(",");
       if (this.updateAvailableSelected) query["update-available"] = String(this.updateAvailableSelected);
+      if (this.eolOnlySelected) query["eol"] = "true";
       if (this.oldestFirst) query["oldest-first"] = String(this.oldestFirst);
       if (this.groupByLabel) query["group-by-label"] = this.groupByLabel;
       this.$router.push({ query });
@@ -1083,6 +1160,7 @@ export default defineComponent({
     const ss = to.query["stack"];
     const uk = to.query["update-kind"];
     const ua = to.query["update-available"];
+    const eo = to.query["eol"];
     const of = to.query["oldest-first"];
     const gl = to.query["group-by-label"];
     
@@ -1094,6 +1172,7 @@ export default defineComponent({
         if (ss) vm.stackSelected = ss;
         if (uk) vm.updateKindSelected = String(uk).split(",").filter(Boolean);
         if (ua) vm.updateAvailableSelected = String(ua).toLowerCase() === "true";
+        if (eo) vm.eolOnlySelected = String(eo).toLowerCase() === "true";
         if (of) vm.oldestFirst = String(of).toLowerCase() === "true";
         if (gl) vm.groupByLabel = gl;
         vm.containers = containers;

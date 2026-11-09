@@ -50,6 +50,22 @@ In orchestrators that support multi-container workloads (such as Kubernetes Pods
   </ConfigOption>
 
   <ConfigOption
+    name="eol.policy"
+    required={false}
+    type="string"
+    supported="latest-major, latest-minor, latest-n-major:<n>, latest-n-minor:<n>">
+    End-of-life rule based on newer release lines (see the End of Life page)
+  </ConfigOption>
+
+  <ConfigOption
+    name="eol.product"
+    required={false}
+    type="string"
+    supported="Any endoflife.date product (e.g. postgresql), or none">
+    endoflife.date product used for the EOL status (see the End of Life page)
+  </ConfigOption>
+
+  <ConfigOption
     name="link.changelog"
     required={false}
     type="string"

@@ -626,6 +626,29 @@ describe('Container Store (SQLite)', () => {
         ).toBe(false);
     });
 
+    test('insertContainer and updateContainer should persist newer release lines', () => {
+        const containerWithLines = {
+            ...sampleContainer,
+            id: 'container-newer-lines-store-test',
+            result: { tag: '15.1', newerLines: { major: 3, minor: 5 } },
+        };
+
+        container.insertContainer(containerWithLines);
+        expect(
+            container.getContainer('container-newer-lines-store-test')?.result
+                ?.newerLines,
+        ).toEqual({ major: 3, minor: 5 });
+
+        container.updateContainer({
+            ...containerWithLines,
+            result: { tag: '15.1', newerLines: { major: 4, minor: 6 } },
+        });
+        expect(
+            container.getContainer('container-newer-lines-store-test')?.result
+                ?.newerLines,
+        ).toEqual({ major: 4, minor: 6 });
+    });
+
     test('insertContainer and updateContainer should persist update candidates per kind', () => {
         const containerWithCandidates = {
             ...sampleContainer,

@@ -155,6 +155,13 @@ export const migrations: Migration[] = [
             `ALTER TABLE container_results_history ADD COLUMN candidates TEXT;`,
         ],
     },
+    {
+        id: 7,
+        name: '0007_result_newer_lines',
+        sql: [
+            `ALTER TABLE container_results_history ADD COLUMN newer_lines TEXT;`,
+        ],
+    },
 ];
 
 export function runMigrations(sqlite: Database.Database) {

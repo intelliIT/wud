@@ -100,10 +100,20 @@ test('getServerConfiguration should return configured api (new vars)', async () 
         enabled: true,
         feature: {
             delete: true,
+            imageage: true,
         },
         port: 4000,
         tls: {},
     });
+});
+
+test('getServerConfiguration should allow disabling the image age warning', async () => {
+    configuration.wudEnvVars.WUD_SERVER_FEATURE_IMAGEAGE = 'false';
+    expect(configuration.getServerConfiguration().feature).toStrictEqual({
+        delete: true,
+        imageage: false,
+    });
+    delete configuration.wudEnvVars.WUD_SERVER_FEATURE_IMAGEAGE;
 });
 
 test('getPublicUrl should return request origin when no basepath is configured', async () => {

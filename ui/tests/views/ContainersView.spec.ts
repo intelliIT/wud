@@ -1,6 +1,10 @@
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import ContainersView from '@/views/ContainersView.vue';
 import { eventService } from '@/services/event';
+
+jest.mock('@/services/server', () => ({
+  getServer: jest.fn(() => Promise.resolve({ configuration: {} })),
+}));
 
 // Mock the container service
 jest.mock('@/services/container', () => ({
@@ -273,6 +277,97 @@ describe('ContainersView', () => {
     expect(wrapper.vm.getSemverDiffColor('patch')).toBe('success');
     expect(wrapper.vm.getSemverDiffColor('rebuild')).toBe('info');
     expect(wrapper.vm.getSemverDiffColor(undefined)).toBe('info');
+  });
+
+  it('filters EOL containers when the EOL switch is on', async () => {
+    wrapper.vm.containers = [
+      { id: '1', eol: { status: 'eol', source: 'purl' } },
+      { id: '2', eol: { status: 'eol-soon', source: 'purl' } },
+      { id: '3', eol: { status: 'supported', source: 'purl' } },
+      { id: '4' },
+    ];
+    wrapper.vm.eolOnlySelected = true;
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.containersFiltered.map((c) => c.id).sort()).toEqual(['1', '2']);
+  });
+
+  it('syncs the EOL switch with the query', async () => {
+    const push = jest.fn();
+    const testWrapper = mount(ContainersView, {
+      global: {
+        stubs: { 'container-filter': true, 'container-item': true },
+        mocks: { $router: { push } },
+      },
+    });
+    testWrapper.vm.onEolOnlyChanged();
+    expect(push).toHaveBeenCalledWith({ query: expect.objectContaining({ eol: 'true' }) });
+    testWrapper.unmount();
+
+    const next = jest.fn();
+    await ContainersView.beforeRouteEnter.call(ContainersView, { query: { eol: 'true' } }, {}, next);
+    const vm: any = { eolOnlySelected: false };
+    next.mock.calls[0][0](vm);
+    expect(vm.eolOnlySelected).toBe(true);
+  });
+
+  it('flags images older than one year', () => {
+    const now = Date.parse('2026-11-09T00:00:00Z');
+    const old = { image: { created: '2025-11-01T00:00:00Z' } };
+    const recent = { image: { created: '2026-01-01T00:00:00Z' } };
+    expect(wrapper.vm.isImageOlderThanOneYear(old, now)).toBe(true);
+    expect(wrapper.vm.isImageOlderThanOneYear(recent, now)).toBe(false);
+    expect(wrapper.vm.isImageOlderThanOneYear({ image: {} }, now)).toBe(false);
+    expect(wrapper.vm.isImageOlderThanOneYear({}, now)).toBe(false);
+  });
+
+  it('reads the image age feature flag from the server configuration', async () => {
+    const mountWith = (serverConfig) =>
+      mount(ContainersView, {
+        global: {
+          stubs: { 'container-filter': true, 'container-item': true },
+          mocks: { $serverConfig: serverConfig },
+        },
+      });
+    const disabled = mountWith({ feature: { delete: true, imageage: false } });
+    await flushPromises();
+    expect(disabled.vm.imageAgeEnabled).toBe(false);
+    disabled.unmount();
+
+    const enabled = mountWith({ feature: { delete: true, imageage: true } });
+    await flushPromises();
+    expect(enabled.vm.imageAgeEnabled).toBe(true);
+    enabled.unmount();
+
+    // Older servers without the flag keep the warning
+    const legacy = mountWith({ feature: { delete: true } });
+    await flushPromises();
+    expect(legacy.vm.imageAgeEnabled).toBe(true);
+    legacy.unmount();
+  });
+
+  it('loads the server configuration when not available yet', async () => {
+    const { getServer } = require('@/services/server');
+    getServer.mockResolvedValueOnce({ configuration: { feature: { imageage: false } } });
+    const testWrapper = mount(ContainersView, {
+      global: {
+        stubs: { 'container-filter': true, 'container-item': true },
+        mocks: { $serverConfig: undefined },
+      },
+    });
+    await flushPromises();
+    expect(testWrapper.vm.imageAgeEnabled).toBe(false);
+    testWrapper.unmount();
+  });
+
+  it('describes the image age', () => {
+    const now = Date.parse('2026-11-09T00:00:00Z');
+    expect(
+      wrapper.vm.getImageAgeDescription({ image: { created: '2024-06-01T00:00:00Z' } }, now),
+    ).toMatch(/^Image created on .+ \(more than 2 years old\)$/);
+    expect(
+      wrapper.vm.getImageAgeDescription({ image: { created: '2025-06-01T00:00:00Z' } }, now),
+    ).toMatch(/\(more than 1 year old\)$/);
+    expect(wrapper.vm.getImageAgeDescription({ image: {} }, now)).toBe('');
   });
 
   it('computes all container labels correctly', () => {

@@ -4,6 +4,7 @@ import flat from 'flat';
 import { snakeCase } from 'snake-case';
 import logger from '../log';
 import * as tag from '../tag';
+import { getContainerEol } from '../eol';
 
 const log = logger.child({ component: 'model-container' });
 
@@ -60,6 +61,10 @@ export interface ContainerResult {
         minor?: string;
         patch?: string;
     };
+    newerLines?: {
+        major: number;
+        minor: number;
+    };
     hook?: {
         phase: string;
         parentTrigger: string;
@@ -78,6 +83,19 @@ export interface ContainerUpdateKind {
         | 'rebuild'
         | 'same'
         | 'unknown';
+}
+
+export interface ContainerEol {
+    status: 'eol' | 'eol-soon' | 'supported' | 'unknown';
+    source: 'label' | 'policy' | 'purl';
+    product?: string;
+    productLabel?: string;
+    cycle?: string;
+    eolFrom?: string;
+    latestInCycle?: string;
+    link?: string;
+    policy?: string;
+    newerLines?: number;
 }
 
 export interface Container {
@@ -110,6 +128,7 @@ export interface Container {
     };
     updateAvailable: boolean;
     updateKind: ContainerUpdateKind;
+    eol?: ContainerEol;
     labels?: Record<string, string>;
     resultChanged?: (otherContainer: Container | undefined) => boolean;
     snoozedVersion?: string;
@@ -258,6 +277,12 @@ const schema = joi.object({
                 patch: joi.string(),
             })
             .optional(),
+        newerLines: joi
+            .object({
+                major: joi.number().integer().min(0).required(),
+                minor: joi.number().integer().min(0).required(),
+            })
+            .optional(),
         hook: joi.object({
             phase: joi.string().valid('pre', 'post'),
             parentTrigger: joi.string(),
@@ -285,6 +310,7 @@ const schema = joi.object({
                 ),
         })
         .default({ kind: 'unknown' }),
+    eol: joi.object().unknown(true).optional(),
     resultChanged: joi.function(),
     labels: joi.object(),
     updateEvent: joi.string().optional(),
@@ -1060,6 +1086,23 @@ function resultChangedFunction(
 }
 
 /**
+ * Computed eol (end-of-life) property.
+ * @param container
+ */
+function addEolProperty(container: Container) {
+    Object.defineProperty(container, 'eol', {
+        enumerable: true,
+        configurable: true,
+        get(this: Container) {
+            return getContainerEol(container);
+        },
+        set(_val: ContainerEol) {
+            // No-op setter: eol is always computed
+        },
+    });
+}
+
+/**
  * Add computed function to check whether the result is different.
  * @param container
  * @returns {*}
@@ -1092,6 +1135,7 @@ export function validate(container: any): Container {
     addUpdateAvailableProperty(containerValidated);
     addUpdateKindProperty(containerValidated);
     addLinkProperty(containerValidated);
+    addEolProperty(containerValidated);
 
     // Add computed functions
     addResultChangedFunction(containerValidated);

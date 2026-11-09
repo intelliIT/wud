@@ -87,6 +87,10 @@ export const containerResultsHistory = sqliteTable(
             minor?: string;
             patch?: string;
         }>(),
+        newerLines: text('newer_lines', { mode: 'json' }).$type<{
+            major: number;
+            minor: number;
+        }>(),
         updateAvailable: integer('update_available', { mode: 'boolean' })
             .notNull()
             .default(false),

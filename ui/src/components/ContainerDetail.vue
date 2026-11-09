@@ -150,11 +150,32 @@
         }}</a>
       </v-list-item-subtitle>
     </v-list-item>
+    <v-list-item v-if="container.eol">
+      <template v-slot:prepend>
+        <v-icon :color="getEolColor(container.eol)">mdi-lifebuoy</v-icon>
+      </template>
+      <v-list-item-title>
+        Support
+        <v-chip label size="x-small" variant="flat" class="ml-1" :color="getEolColor(container.eol)">
+          {{ getEolLabel(container.eol) }}
+        </v-chip>
+      </v-list-item-title>
+      <v-list-item-subtitle>
+        {{ getEolDescription(container.eol) }}
+        <template v-if="container.eol.latestInCycle">
+          (latest in cycle: {{ container.eol.latestInCycle }})
+        </template>
+        <div v-if="container.eol.link">
+          <a :href="container.eol.link" target="_blank">{{ container.eol.link }}</a>
+        </div>
+      </v-list-item-subtitle>
+    </v-list-item>
   </v-list>
 </template>
 <script lang="ts">
 import { defineComponent } from "vue";
 import { copyToClipboard } from "@/services/clipboard";
+import { getEolColor, getEolDescription, getEolLabel } from "@/services/eol";
 
 export default defineComponent({
   props: {
@@ -168,6 +189,10 @@ export default defineComponent({
   },
 
   methods: {
+    getEolColor,
+    getEolDescription,
+    getEolLabel,
+
     async copyToClipboard(kind: string, value: string) {
       const copied = await copyToClipboard(value);
       if (copied) {

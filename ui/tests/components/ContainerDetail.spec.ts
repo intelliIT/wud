@@ -132,4 +132,32 @@ describe('ContainerDetail', () => {
     await wrapper.vm.copyToClipboard('container id', 'c123456789');
     expect(clipboardService.copyToClipboard).toHaveBeenCalledWith('c123456789');
   });
+
+  it('renders the EOL support section', () => {
+    wrapper = mount(ContainerDetail, {
+      props: {
+        container: {
+          ...baseContainer,
+          eol: {
+            status: 'eol',
+            source: 'purl',
+            productLabel: 'PostgreSQL',
+            cycle: '13',
+            eolFrom: '2025-11-13',
+            latestInCycle: '13.22',
+            link: 'https://endoflife.date/postgresql',
+          },
+        },
+      },
+    });
+    expect(wrapper.text()).toContain('Support');
+    expect(wrapper.text()).toContain('PostgreSQL 13');
+    expect(wrapper.text()).toContain('latest in cycle: 13.22');
+    expect(wrapper.html()).toContain('https://endoflife.date/postgresql');
+  });
+
+  it('hides the support section without EOL data', () => {
+    wrapper = mount(ContainerDetail, { props: { container: baseContainer } });
+    expect(wrapper.text()).not.toContain('Support');
+  });
 });

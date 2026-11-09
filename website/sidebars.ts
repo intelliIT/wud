@@ -137,6 +137,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          id: 'configuration/eol/README',
+          label: 'End of Life (EOL)',
+        },
+        {
+          type: 'doc',
           id: 'monitoring/README',
           label: 'Monitoring',
         },

@@ -59,6 +59,14 @@ You can adjust the HTTP server configuration with the following environment vari
     Whether delete operations are permitted via the API and UI
   </ConfigOption>
 
+  <ConfigOption
+    name="WUD_SERVER_FEATURE_IMAGEAGE"
+    required={false}
+    type="boolean"
+    defaultValue="true">
+    Whether the Containers page warns (⚠ + creation date) about images older than one year
+  </ConfigOption>
+
   <ConfigOption name="WUD_SERVER_PORT"
     type="integer"
     required={false}

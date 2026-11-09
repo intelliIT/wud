@@ -537,3 +537,56 @@ export function groupCandidatesByKind(
     }
     return groups;
 }
+
+export type NewerLines = {
+    major: number;
+    minor: number;
+};
+
+/**
+ * Count the distinct release lines newer than the current tag.
+ * A major line is the major version (e.g. 18), a minor line is major.minor
+ * (e.g. 2.14). A newer major version also counts as a newer minor line.
+ * @param currentTag the current (local) tag
+ * @param candidates candidate tags (newer than the current tag)
+ * @param transformFormula optional transform formula
+ * @param container optional container context (for transform errors)
+ * @returns {NewerLines} the number of newer major and minor lines
+ */
+export function countNewerLines(
+    currentTag: string,
+    candidates: string[],
+    transformFormula?: string,
+    container?: Container,
+): NewerLines {
+    const current = parse(transform(transformFormula, currentTag, container));
+    if (!current) {
+        return { major: 0, minor: 0 };
+    }
+    const majorLines = new Set<number>();
+    const minorLines = new Set<string>();
+    for (const candidate of candidates || []) {
+        let candidateSemver;
+        try {
+            candidateSemver = parse(
+                transform(transformFormula, candidate, container),
+            );
+        } catch {
+            candidateSemver = null;
+        }
+        if (!candidateSemver) {
+            continue;
+        }
+        if (candidateSemver.major > current.major) {
+            majorLines.add(candidateSemver.major);
+        }
+        if (
+            candidateSemver.major > current.major ||
+            (candidateSemver.major === current.major &&
+                candidateSemver.minor > current.minor)
+        ) {
+            minorLines.add(`${candidateSemver.major}.${candidateSemver.minor}`);
+        }
+    }
+    return { major: majorLines.size, minor: minorLines.size };
+}

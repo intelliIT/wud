@@ -24,6 +24,10 @@ jest.mock('../api', () => ({
     init: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('../eol', () => ({
+    init: jest.fn(),
+}));
+
 let order: string[];
 
 beforeEach(async () => {
@@ -35,6 +39,7 @@ beforeEach(async () => {
     const prometheus = await import('../prometheus');
     const registry = await import('../registry');
     const api = await import('../api');
+    const eol = await import('../eol');
 
     store.store.init.mockImplementation(async () => {
         order.push('store.init');
@@ -54,6 +59,9 @@ beforeEach(async () => {
     api.init.mockImplementation(async () => {
         order.push('api.init');
     });
+    eol.init.mockImplementation(() => {
+        order.push('eol.init');
+    });
 });
 
 describe('bootstrap', () => {
@@ -71,6 +79,7 @@ describe('bootstrap', () => {
             'bootstrapAuth',
             'prometheus.init',
             'registry.init',
+            'eol.init',
             'api.init',
         ]);
         expect(store.store.init).toHaveBeenCalledTimes(1);

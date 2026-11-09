@@ -19,15 +19,18 @@ export async function bootstrap(options: { mode: RunMode }) {
     }
 
     // Server startup order (preserved from the legacy main):
-    // store.init -> bootstrapAuth -> prometheus.init -> registry.init -> api.init
+    // store.init -> bootstrapAuth -> prometheus.init -> registry.init
+    // -> eol.init -> api.init
     const store = await import('../store');
     const { bootstrapAuth } = await import('../store/auth_bootstrap');
     const prometheus = await import('../prometheus');
     const api = await import('../api');
+    const eol = await import('../eol');
 
     await store.store.init();
     await bootstrapAuth();
     prometheus.init();
     await registry.init();
+    eol.init();
     await api.init();
 }

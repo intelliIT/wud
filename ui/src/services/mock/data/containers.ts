@@ -40,6 +40,16 @@ export const mockContainers = [
       remoteValue: "v3.3.1",
       semverDiff: "minor",
     },
+    eol: {
+      status: "eol",
+      source: "purl",
+      product: "traefik",
+      productLabel: "Traefik",
+      cycle: "3.2",
+      eolFrom: "2025-01-06",
+      latestInCycle: "3.2.5",
+      link: "https://endoflife.date/traefik",
+    },
     labels: {
       "com.docker.compose.project": "networking",
       "com.docker.compose.service": "traefik",
@@ -90,6 +100,13 @@ export const mockContainers = [
       localValue: "2024.07.0",
       remoteValue: "2024.12.1",
       semverDiff: "minor",
+    },
+    eol: {
+      status: "eol",
+      source: "policy",
+      policy: "latest-minor",
+      cycle: "2024.07",
+      newerLines: 1,
     },
     labels: {
       "com.docker.compose.project": "networking",
@@ -240,6 +257,16 @@ export const mockContainers = [
       localValue: "30.0.4",
       remoteValue: "30.0.5",
       semverDiff: "patch",
+    },
+    eol: {
+      status: "eol",
+      source: "purl",
+      product: "nextcloud",
+      productLabel: "Nextcloud",
+      cycle: "30",
+      eolFrom: "2025-10-31",
+      latestInCycle: "30.0.17",
+      link: "https://endoflife.date/nextcloud",
     },
     labels: {
       "com.docker.compose.project": "cloud",

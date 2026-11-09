@@ -36,6 +36,16 @@
 
         <v-switch
           class="switch-compact mr-2"
+          label="EOL"
+          v-model="eolOnlyLocal"
+          @update:modelValue="emitEolOnlyChanged"
+          :hide-details="true"
+          density="compact"
+          color="error"
+        />
+
+        <v-switch
+          class="switch-compact mr-2"
           label="Oldest first"
           v-model="oldestFirstLocal"
           @update:modelValue="emitOldestFirstChanged"
@@ -216,6 +226,10 @@ export default defineComponent({
       type: Boolean,
       required: true,
     },
+    eolOnly: {
+      type: Boolean,
+      default: false,
+    },
     oldestFirst: {
       type: Boolean,
       required: true,
@@ -243,6 +257,7 @@ export default defineComponent({
       searchQuery: this.searchQueryInit || "",
       updateKindSelected: [] as string[],
       updateAvailableLocal: this.updateAvailable,
+      eolOnlyLocal: this.eolOnly,
       oldestFirstLocal: this.oldestFirst,
       groupByLabelLocal: this.groupByLabel,
     };
@@ -258,6 +273,7 @@ export default defineComponent({
         this.updateKindSelected?.length ||
         this.groupByLabelLocal ||
         this.updateAvailableLocal ||
+        this.eolOnlyLocal ||
         this.oldestFirstLocal
       );
     },
@@ -282,6 +298,9 @@ export default defineComponent({
     emitUpdateAvailableChanged() {
       this.$emit("update-available-changed");
     },
+    emitEolOnlyChanged() {
+      this.$emit("eol-only-changed");
+    },
     emitOldestFirstChanged() {
       this.$emit("oldest-first-changed");
     },
@@ -296,6 +315,7 @@ export default defineComponent({
       this.updateKindSelected = [];
       this.groupByLabelLocal = "";
       this.updateAvailableLocal = false;
+      this.eolOnlyLocal = false;
       this.oldestFirstLocal = false;
       this.emitRegistryChanged();
       this.emitWatcherChanged();
@@ -332,6 +352,7 @@ export default defineComponent({
     this.searchQuery = this.searchQueryInit || "";
     this.updateKindSelected = [...(this.updateKindSelectedInit || [])];
     this.updateAvailableLocal = this.updateAvailable;
+    this.eolOnlyLocal = this.eolOnly;
     this.oldestFirstLocal = this.oldestFirst;
     this.groupByLabelLocal = this.groupByLabel;
   },

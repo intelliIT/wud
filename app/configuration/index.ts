@@ -155,9 +155,11 @@ export function getServerConfiguration() {
         feature: joi
             .object({
                 delete: joi.boolean().default(true),
+                imageage: joi.boolean().default(true),
             })
             .default({
                 delete: true,
+                imageage: true,
             }),
     });
 
@@ -179,6 +181,28 @@ export function getPrometheusConfiguration() {
     const configurationSchema = joi.object().keys({
         enabled: joi.boolean().default(true),
         auth: joi.boolean().default(true),
+    });
+
+    // Validate Configuration
+    const configurationToValidate = configurationSchema.validate(
+        configurationFromEnv || {},
+    );
+    if (configurationToValidate.error) {
+        throw configurationToValidate.error;
+    }
+    return configurationToValidate.value;
+}
+
+/**
+ * Get EOL (end-of-life) configurations.
+ */
+export function getEolConfiguration() {
+    const configurationFromEnv = get('wud.eol', wudEnvVars);
+    const configurationSchema = joi.object().keys({
+        enabled: joi.boolean().default(false),
+        cron: joi.string().default('0 4 * * *'),
+        warndays: joi.number().integer().min(0).default(90),
+        url: joi.string().uri().default('https://endoflife.date'),
     });
 
     // Validate Configuration

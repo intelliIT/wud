@@ -929,3 +929,48 @@ describe('groupCandidatesByKind', () => {
         ).toEqual({ minor: ['1.3.0-ls12'], patch: ['1.2.4-ls11'] });
     });
 });
+
+describe('countNewerLines', () => {
+    test('should count distinct newer major and minor lines', () => {
+        expect(
+            semver.countNewerLines('15.1', [
+                '18.1',
+                '18.0',
+                '17.1',
+                '16.1',
+                '15.2',
+            ]),
+        ).toEqual({ major: 3, minor: 5 });
+    });
+
+    test('should count minor lines within the same major', () => {
+        expect(
+            semver.countNewerLines('v2.12.0', [
+                'v2.14.1',
+                'v2.14.0',
+                'v2.13.0',
+            ]),
+        ).toEqual({ major: 0, minor: 2 });
+    });
+
+    test('should return zero when only patches are newer', () => {
+        expect(semver.countNewerLines('2.13.1', ['2.13.2'])).toEqual({
+            major: 0,
+            minor: 0,
+        });
+        expect(semver.countNewerLines('2.13.1', [])).toEqual({
+            major: 0,
+            minor: 0,
+        });
+    });
+
+    test('should apply transform formula', () => {
+        expect(
+            semver.countNewerLines(
+                '1.2.3-ls10',
+                ['2.0.0-ls12', '1.3.0-ls11'],
+                '^(\\d+\\.\\d+\\.\\d+)-ls\\d+$ => $1',
+            ),
+        ).toEqual({ major: 1, minor: 2 });
+    });
+});

@@ -1966,7 +1966,10 @@ describe('Docker Watcher', () => {
             const result = await docker.findNewVersion(container, mockLogChild);
 
             expect(mockRegistry.getTags).toHaveBeenCalledWith(container.image);
-            expect(result).toEqual({ tag: '1.0.0' });
+            expect(result).toEqual({
+                tag: '1.0.0',
+                newerLines: { major: 0, minor: 0 },
+            });
         });
 
         test('should resolve legacy registry alias to public registry (e.g. hub to hub.public)', async () => {
@@ -1990,7 +1993,10 @@ describe('Docker Watcher', () => {
             const result = await docker.findNewVersion(container, mockLogChild);
 
             expect(mockRegistry.getTags).toHaveBeenCalledWith(container.image);
-            expect(result).toEqual({ tag: '1.0.0' });
+            expect(result).toEqual({
+                tag: '1.0.0',
+                newerLines: { major: 0, minor: 0 },
+            });
         });
 
         test('should handle unsupported registry', async () => {
@@ -3121,6 +3127,7 @@ describe('Docker Watcher', () => {
             expect(result).toEqual({
                 tag: '1.3',
                 candidates: { minor: '1.3' },
+                newerLines: { major: 0, minor: 1 },
             });
         });
 
@@ -3199,7 +3206,10 @@ describe('Docker Watcher', () => {
 
             // 4.5.5-ls244 normalizes to the same 4.5.5 as the current image,
             // so it must NOT be proposed as the next tag.
-            expect(result).toEqual({ tag: '4.5.5-ls239' });
+            expect(result).toEqual({
+                tag: '4.5.5-ls239',
+                newerLines: { major: 0, minor: 0 },
+            });
         });
 
         test('should report the best verified candidate per semver kind', async () => {
@@ -3298,6 +3308,8 @@ describe('Docker Watcher', () => {
                 tag: '1.9.0',
                 digest: 'sha256:validContainer190',
                 candidates: { minor: '1.9.0' },
+                // The Helm chart tag 2.0.0 is counted as a newer line (not verified)
+                newerLines: { major: 1, minor: 2 },
             });
             expect(mockLogChild.info).toHaveBeenCalledWith(
                 'Candidate tag 2.0.0 is a non-container OCI artifact, skipping',
@@ -3336,7 +3348,10 @@ describe('Docker Watcher', () => {
             expect(mockRegistry.getImageManifestDigest).toHaveBeenCalledTimes(
                 1,
             );
-            expect(result).toEqual({ tag: '1.0.0' });
+            expect(result).toEqual({
+                tag: '1.0.0',
+                newerLines: { major: 1, minor: 1 },
+            });
             expect(mockLogChild.info).toHaveBeenCalledWith(
                 'Candidate tag 2.0.0 is a non-container OCI artifact, skipping',
             );

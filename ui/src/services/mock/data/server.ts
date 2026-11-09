@@ -9,6 +9,8 @@ export const mockServer = {
     },
     feature: {
       delete: true,
+      // Demo override: VUE_APP_WUD_SERVER_FEATURE_IMAGEAGE=false
+      imageage: process.env.VUE_APP_WUD_SERVER_FEATURE_IMAGEAGE !== "false",
     },
   },
 };
